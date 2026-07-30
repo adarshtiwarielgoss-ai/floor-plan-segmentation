@@ -1,1 +1,62 @@
-key : val
+# ==========================
+# Model Training Parameters
+# ==========================
+
+EPOCHS: 150
+PATIENCE: 40
+
+# Image
+IMGSZ: 640
+
+# Batch
+BATCH_SIZE: 32
+
+# Optimizer
+OPTIMIZER: AdamW
+LR0: 0.001
+LRF: 0.01
+MOMENTUM: 0.9
+WEIGHT_DECAY: 0.0005
+
+# LR Scheduler
+COS_LR: True
+
+# Warmup
+WARMUP_EPOCHS: 3
+WARMUP_BIAS_LR: 0.1
+WARMUP_MOMENTUM: 0.8
+
+# Augmentation
+MOSAIC: 0.5
+SCALE: 0.5
+TRANSLATE: 0.1
+FLIPLR: 0.5
+FLIPUD: 0.0
+
+HSV_H: 0.015
+HSV_S: 0.7
+HSV_V: 0.4
+
+MIXUP: 0.0
+COPY_PASTE: 0.0
+
+# Segmentation
+OVERLAP_MASK: True
+MASK_RATIO: 4
+
+# Validation
+VAL: True
+PLOTS: True
+
+# Hardware
+DEVICE: "0,1"
+WORKERS: 8
+AMP: True
+
+# Misc
+SEED: 42
+DETERMINISTIC: True
+VERBOSE: True
+
+# Output
+NAME: train

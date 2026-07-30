@@ -1,0 +1,52 @@
+stages:
+
+  data_ingestion:
+    cmd: python src/floor_segmentation/pipeline/stage_01_data_ingestion.py
+    deps:
+      - src/floor_segmentation/pipeline/stage_01_data_ingestion.py
+      - src/floor_segmentation/components/data_ingestion.py
+      - config/config.yaml
+    outs:
+      - artifacts/data_ingestion
+
+  data_validation:
+    cmd: python src/floor_segmentation/pipeline/stage_02_data_validation.py
+    deps:
+      - src/floor_segmentation/pipeline/stage_02_data_validation.py
+      - src/floor_segmentation/components/data_validation.py
+      - config/config.yaml
+      - artifacts/data_ingestion
+    outs:
+      - artifacts/data_validation/status.txt
+
+  model_trainer:
+    cmd: python src/floor_segmentation/pipeline/stage_03_model_trainer.py
+    deps:
+      - src/floor_segmentation/pipeline/stage_03_model_trainer.py
+      - src/floor_segmentation/components/model_trainer.py
+      - config/config.yaml
+      - params.yaml
+      - artifacts/data_ingestion
+    outs:
+      - artifacts/model_trainer
+
+  model_evaluation:
+    cmd: python src/floor_segmentation/pipeline/stage_04_model_evaluation.py
+    deps:
+      - src/floor_segmentation/pipeline/stage_04_model_evaluation.py
+      - src/floor_segmentation/components/model_evaluation.py
+      - config/config.yaml
+      - artifacts/model_trainer
+    outs:
+      - artifacts/model_evaluation
+
+  model_pusher:
+    cmd: python src/floor_segmentation/pipeline/stage_05_model_pusher.py
+    deps:
+      - src/floor_segmentation/pipeline/stage_05_model_pusher.py
+      - src/floor_segmentation/components/model_pusher.py
+      - config/config.yaml
+      - artifacts/model_trainer
+      - artifacts/model_evaluation
+    outs:
+      - artifacts/saved_models
