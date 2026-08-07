@@ -72,7 +72,6 @@ class ModelTrainerConfig:
     deterministic: bool
     verbose: bool
 
-    project: str
     name: str
 
 

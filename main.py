@@ -1,3 +1,5 @@
+from floor_segmentation.utils.common import configure_ultralytics
+configure_ultralytics()
 from floor_segmentation.pipeline.stage_01_data_ingestion import DataIngestionTrainingPipeline
 from floor_segmentation.pipeline.stage_02_data_validation import DataValidationTrainingPipeline
 from floor_segmentation.pipeline.stage_03_model_trainer import ModelTrainerTrainingPipeline

@@ -9,6 +9,7 @@ from box import ConfigBox
 from pathlib import Path
 from typing import Any
 import base64
+from ultralytics import settings
 
 
 
@@ -135,3 +136,23 @@ def decodeImage(imgstring, fileName):
 def encodeImageIntoBase64(croppedImagePath):
     with open(croppedImagePath, "rb") as f:
         return base64.b64encode(f.read())
+
+
+
+
+    
+def configure_ultralytics():
+
+    project_root = Path(__file__).resolve().parents[3]
+
+    runs_dir = str(project_root / "artifacts")
+    weights_dir = str(project_root / "artifacts" / "weights")
+
+    if (
+        settings["runs_dir"] != runs_dir or
+        settings["weights_dir"] != weights_dir
+    ):
+        settings.update({
+            "runs_dir": runs_dir,
+            "weights_dir": weights_dir
+        })

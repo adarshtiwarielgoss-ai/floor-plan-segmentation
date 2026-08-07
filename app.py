@@ -1,3 +1,6 @@
+from floor_segmentation.utils.common import configure_ultralytics
+
+configure_ultralytics()
 from pathlib import Path
 import shutil
 
