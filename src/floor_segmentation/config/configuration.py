@@ -3,8 +3,7 @@ import os
 from pathlib import Path
 from floor_segmentation.utils.common import (
                                               read_yaml,
-                                              create_directories,
-                                             configure_ultralytics
+                                              create_directories
                                             )
 
 from floor_segmentation.entity.config_entity import (DataIngestionConfig,
@@ -24,8 +23,7 @@ class ConfigurationManager:
         params_filepath=PARAMS_FILE_PATH,
     ):
 
-        # Configure Ultralytics for this project
-        configure_ultralytics()
+        
 
         self.config = read_yaml(config_filepath)
         self.params = read_yaml(params_filepath)

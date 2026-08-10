@@ -1,24 +1,26 @@
 # --- Core Deep Learning & Computer Vision (YOLOv26 Stack) ---
-ultralytics>=8.4.52
-torch>=2.4.0
-torchvision>=0.19.0
+ultralytics
+#torch>=2.4.0
+#torchvision>=0.19.0
 
 # --- Data Science, Analysis & Visualization ---
-pandas>=2.2.0
-numpy>=1.26.0
-opencv-python>=4.10.0
-Pillow>=10.4.0
-matplotlib>=3.9.0
-seaborn>=0.13.0
-scipy>=1.13.0
+#pandas>=2.2.0
+#numpy>=1.26.0
+#opencv-python>=4.10.0
+#Pillow>=10.4.0
+#matplotlib>=3.9.0
+#seaborn>=0.13.0
+#scipy>=1.13.0
 
-# --- Cloud Storage & Data Versioning ---
+# --- Cloud Storage, Model Hub & Data Versioning ---
 gdown>=5.2.0
-dvc>=3.55.0
-dagshub>=0.3.0
+#dvc>=3.55.0
+#dagshub>=0.3.0
+huggingface_hub>=0.24.0
 
 # --- Configuration, Tracking & MLOps Pipelines ---
-mlflow>=3.14.0
+#mlflow>=3.14.0
+python-dotenv>=1.0.1
 python-box>=7.4.0
 PyYAML>=6.0.1
 types-PyYAML>=6.0.12
@@ -27,8 +29,8 @@ ensure>=1.0.4
 joblib>=1.4.0
 
 # --- API Deployment & Web serving ---
-fastapi
-uvicorn
+#fastapi
+#uvicorn
 python-multipart
 
 # --- Local Editable Installation ---

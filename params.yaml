@@ -2,14 +2,14 @@
 # Model Training Parameters
 # ==========================
 
-EPOCHS: 1
+EPOCHS: 3
 PATIENCE: 40
 
 # Image
 IMGSZ: 640
 
 # Batch
-BATCH_SIZE: 4
+BATCH_SIZE: 16
 
 # Optimizer
 OPTIMIZER: AdamW
@@ -49,9 +49,9 @@ VAL: True
 PLOTS: True
 
 # Hardware
-DEVICE: "cpu"
+DEVICE: 0,
 WORKERS: 2
-AMP: True
+AMP: False # change to True 
 
 # Misc
 SEED: 42

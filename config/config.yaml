@@ -17,39 +17,13 @@ data_validation:
 
 model_trainer:
   root_dir: artifacts/model_trainer
-  weight_name: yolo26m-sem-ade20k.pt  
+  weight_name: yolo26x-seg.pt
 
-model_evaluation:
-  root_dir: artifacts/model_evaluation
 
-  model_path: artifacts/model_trainer/train/weights/best.pt
-
-  data_yaml: artifacts/data_ingestion/mini_wall_dataset/data.yaml
-
-  metric_file_name: metrics.json 
+  
 
 
 
-model_pusher:
-  root_dir: artifacts/model_pusher
 
-  trained_model_dir: artifacts/model_trainer/train/weights
-
-  evaluation_dir: artifacts/model_evaluation
-
-  saved_models_dir: artifacts/saved_models 
-
-
-
-prediction:
-  model_path: artifacts/saved_models/latest/best.pt
-
-  imgsz: 640
-
-  conf: 0.25
-
-  device: cpu
-
-  save: False  
 
 

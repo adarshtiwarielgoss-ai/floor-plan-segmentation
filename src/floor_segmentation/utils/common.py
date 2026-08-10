@@ -141,18 +141,3 @@ def encodeImageIntoBase64(croppedImagePath):
 
 
     
-def configure_ultralytics():
-
-    project_root = Path(__file__).resolve().parents[3]
-
-    runs_dir = str(project_root / "artifacts")
-    weights_dir = str(project_root / "artifacts" / "weights")
-
-    if (
-        settings["runs_dir"] != runs_dir or
-        settings["weights_dir"] != weights_dir
-    ):
-        settings.update({
-            "runs_dir": runs_dir,
-            "weights_dir": weights_dir
-        })
