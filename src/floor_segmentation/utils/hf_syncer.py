@@ -41,15 +41,29 @@ class HuggingFaceSyncer(threading.Thread):
             self.stop_event.wait(self.interval)
 
     def _sync_files(self):
-        if os.path.exists(self.save_dir):
-            # Poore folder ke saare content (plots, weights, logs, images) ko upload karega
+        # FIX: Agar path me 'train' nahi hai ya direct model_trainer par hai, toh uske parent/base directory ko target karo
+        # Ye ensure karega ki artifacts/model_trainer/ ke andar ka 'train' folder bhi sync ho jaye
+        base_dir = os.path.abspath(self.save_dir)
+        
+        # Agar path ke andar 'train' ya specific run folder nahi hai, toh check karo ki koi subfolder hai kya
+        target_path = base_dir
+        if os.path.exists(base_dir):
+            # Agar 'artifacts/model_trainer' pass hua hai, toh uske andar ke subfolders ko bhi pakdega
+            subfolders = [os.path.join(base_dir, d) for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
+            if subfolders:
+                # Sabse latest modified subfolder ko target karenge (jaise 'train')
+                latest_subfolder = max(subfolders, key=os.path.getmtime)
+                if os.path.exists(os.path.join(latest_subfolder, "weights")):
+                    target_path = latest_subfolder
+
+        if os.path.exists(target_path):
             self.api.upload_folder(
-                folder_path=self.save_dir,
+                folder_path=target_path,
                 repo_id=self.hf_repo,
                 repo_type="model",
                 commit_message="Auto-sync training artifacts and weights"
             )
-            logger.info(f"[HF Watcher] All training files synced to HF repo '{self.hf_repo}'! 🚀")
+            logger.info(f"[HF Watcher] All training files synced from '{target_path}' to HF repo '{self.hf_repo}'! 🚀")
 
     def stop(self):
         logger.info("[HF Watcher] Stopping watcher and executing final complete sync...")
