@@ -10,6 +10,10 @@ from floor_segmentation.pipeline.stage_03_model_trainer import (
     ModelTrainerTrainingPipeline
 )
 
+from floor_segmentation.utils.hf_syncer import (
+    HuggingFaceSyncer
+)
+
 from floor_segmentation import logger
 
 from floor_segmentation.utils.auto_zip_and_download import (
@@ -17,9 +21,9 @@ from floor_segmentation.utils.auto_zip_and_download import (
 )
 
 
-# ==============================================================
-# Data Ingestion Stage
-# ==============================================================
+# ============================================================
+# DATA INGESTION
+# ============================================================
 
 STAGE_NAME = "Data Ingestion stage"
 
@@ -30,24 +34,22 @@ try:
     )
 
     obj = DataIngestionTrainingPipeline()
-
     obj.main()
 
     logger.info(
-        f">>>>>> stage {STAGE_NAME} completed "
-        f"<<<<<<\n\nx==========x"
+        f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n"
+        f"x==========x"
     )
 
 except Exception as e:
 
     logger.exception(e)
-
     raise e
 
 
-# ==============================================================
-# Data Validation Stage
-# ==============================================================
+# ============================================================
+# DATA VALIDATION
+# ============================================================
 
 STAGE_NAME = "Data Validation stage"
 
@@ -58,26 +60,26 @@ try:
     )
 
     obj = DataValidationTrainingPipeline()
-
     obj.main()
 
     logger.info(
-        f">>>>>> stage {STAGE_NAME} completed "
-        f"<<<<<<\n\nx==========x"
+        f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n"
+        f"x==========x"
     )
 
 except Exception as e:
 
     logger.exception(e)
-
     raise e
 
 
-# ==============================================================
-# Model Trainer Stage
-# ==============================================================
+# ============================================================
+# MODEL TRAINER
+# ============================================================
 
 STAGE_NAME = "Model Trainer stage"
+
+hf_syncer = None
 
 try:
 
@@ -85,25 +87,112 @@ try:
         f">>>>>> stage {STAGE_NAME} started <<<<<<"
     )
 
-    # The model trainer pipeline handles Hugging Face,
-    # checkpoint restoration, synchronization, and training.
-    obj = ModelTrainerTrainingPipeline()
+    SAVE_DIR = "artifacts/model_trainer"
 
+    # --------------------------------------------------------
+    # 1. Create Hugging Face synchronizer
+    # --------------------------------------------------------
+
+    hf_syncer = HuggingFaceSyncer(
+        save_dir=SAVE_DIR,
+        interval=180,
+    )
+
+    # --------------------------------------------------------
+    # 2. Restore checkpoint BEFORE training starts
+    # --------------------------------------------------------
+
+    checkpoint = hf_syncer.restore_checkpoint()
+
+    if checkpoint:
+
+        logger.info(
+            "=================================================="
+        )
+
+        logger.info(
+            "Existing checkpoint found on Hugging Face."
+        )
+
+        logger.info(
+            "Training will RESUME from the checkpoint."
+        )
+
+        logger.info(
+            "=================================================="
+        )
+
+    else:
+
+        logger.info(
+            "=================================================="
+        )
+
+        logger.info(
+            "No existing checkpoint found on Hugging Face."
+        )
+
+        logger.info(
+            "Training will start from SCRATCH."
+        )
+
+        logger.info(
+            "=================================================="
+        )
+
+    # --------------------------------------------------------
+    # 3. Start background Hugging Face synchronization
+    # --------------------------------------------------------
+
+    hf_syncer.start()
+
+    # --------------------------------------------------------
+    # 4. Start model training
+    # --------------------------------------------------------
+
+    obj = ModelTrainerTrainingPipeline()
     obj.main()
 
-    # Create the final training artifact archive.
+    # --------------------------------------------------------
+    # 5. Stop HF synchronization and perform final sync
+    # --------------------------------------------------------
+
+    hf_syncer.stop()
+
+    hf_syncer = None
+
+    # --------------------------------------------------------
+    # 6. Create ZIP archive
+    # --------------------------------------------------------
+
     auto_zip_and_download(
-        folder_path="artifacts/model_trainer",
-        zip_name="model_trainer_results",
+        folder_path=SAVE_DIR,
+        zip_name="model_trainer_results"
     )
 
     logger.info(
-        f">>>>>> stage {STAGE_NAME} completed "
-        f"<<<<<<\n\nx==========x"
+        f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n"
+        f"x==========x"
     )
 
 except Exception as e:
 
     logger.exception(e)
+
+    # --------------------------------------------------------
+    # Make sure HF sync is stopped even if training fails
+    # --------------------------------------------------------
+
+    if hf_syncer is not None:
+
+        try:
+            hf_syncer.stop()
+
+        except Exception as sync_error:
+
+            logger.error(
+                f"Failed to stop Hugging Face synchronizer: "
+                f"{sync_error}"
+            )
 
     raise e

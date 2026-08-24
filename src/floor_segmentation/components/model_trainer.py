@@ -8,36 +8,34 @@ from floor_segmentation.entity.config_entity import ModelTrainerConfig
 
 class ModelTrainer:
 
-    def __init__(
-        self,
-        config: ModelTrainerConfig,
-    ):
+    def __init__(self, config: ModelTrainerConfig):
+
         self.config = config
 
-    def train(
-        self,
-        checkpoint_path=None,
-    ):
+        self.resume_checkpoint = (
+            Path(self.config.root_dir)
+            / "train"
+            / "weights"
+            / "last.pt"
+        )
 
-        # ==========================================================
-        # Resume training from an existing checkpoint.
-        # ==========================================================
+    def train(self):
 
-        if checkpoint_path:
+        # ============================================================
+        # CHECK FOR RESUME CHECKPOINT
+        # ============================================================
 
-            checkpoint_path = str(
-                Path(
-                    checkpoint_path
-                ).resolve()
-            )
+        resume = self.resume_checkpoint.exists()
+
+        if resume:
 
             logger.info(
-                f"Loading existing checkpoint: {checkpoint_path}"
+                f"Loading existing checkpoint: "
+                f"{self.resume_checkpoint}"
             )
 
-            # Load the previous YOLO training checkpoint.
             model = YOLO(
-                checkpoint_path
+                str(self.resume_checkpoint)
             )
 
             logger.info(
@@ -48,48 +46,35 @@ class ModelTrainer:
                 "Starting YOLO training in RESUME mode..."
             )
 
-            # Resume the exact previous Ultralytics training session.
-            model.train(
-                resume=True
+        else:
+
+            logger.info(
+                f"Loading model: {self.config.weight_name}"
+            )
+
+            model = YOLO(
+                self.config.weight_name
             )
 
             logger.info(
-                "Resumed Model Training Completed Successfully."
+                "No existing checkpoint found."
             )
 
-            return
+            logger.info(
+                "Training will start from SCRATCH."
+            )
 
-        # ==========================================================
-        # Start a new training run from the configured base model.
-        # ==========================================================
+            logger.info(
+                "Starting YOLO Training..."
+            )
 
-        logger.info(
-            f"Loading model: {self.config.weight_name}"
-        )
+        # ============================================================
+        # TRAINING
+        # ============================================================
 
-        # Load the configured base model.
-        model = YOLO(
-            self.config.weight_name
-        )
+        training_kwargs = dict(
 
-        logger.info(
-            "No existing checkpoint found."
-        )
-
-        logger.info(
-            "Training will start from SCRATCH."
-        )
-
-        logger.info(
-            "Starting YOLO Training..."
-        )
-
-        # Start a new YOLO training run.
-        model.train(
-
-            data=str(
-                self.config.data_yaml
-            ),
+            data=str(self.config.data_yaml),
 
             epochs=self.config.epochs,
             patience=self.config.patience,
@@ -137,9 +122,7 @@ class ModelTrainer:
             verbose=self.config.verbose,
 
             project=str(
-                Path(
-                    self.config.root_dir
-                ).resolve()
+                Path(self.config.root_dir).resolve()
             ),
 
             name=self.config.name,
@@ -147,6 +130,36 @@ class ModelTrainer:
             exist_ok=True,
         )
 
-        logger.info(
-            "Model Training Completed Successfully."
+        # ============================================================
+        # ENABLE RESUME ONLY WHEN CHECKPOINT EXISTS
+        # ============================================================
+
+        if resume:
+
+            training_kwargs["resume"] = str(
+                self.resume_checkpoint
+            )
+
+        # ============================================================
+        # START TRAINING
+        # ============================================================
+
+        model.train(
+            **training_kwargs
         )
+
+        # ============================================================
+        # COMPLETION LOG
+        # ============================================================
+
+        if resume:
+
+            logger.info(
+                "Resumed Model Training Completed Successfully."
+            )
+
+        else:
+
+            logger.info(
+                "Model Training Completed Successfully."
+            )

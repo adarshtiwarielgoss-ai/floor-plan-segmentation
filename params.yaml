@@ -49,7 +49,7 @@ VAL: True
 PLOTS: True
 
 # Hardware
-DEVICE: 0
+DEVICE: 0,1
 WORKERS: 2
 AMP: False # change to True 
 
