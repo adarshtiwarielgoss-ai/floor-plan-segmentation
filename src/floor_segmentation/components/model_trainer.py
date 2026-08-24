@@ -19,23 +19,30 @@ class ModelTrainer:
             / "last.pt"
         )
 
-    def train(self):
+    # Added optional checkpoint_path parameter to accept Hugging Face checkpoints
+    def train(self, checkpoint_path=None):
+
+        # Override local checkpoint path if external checkpoint is provided
+        if checkpoint_path is not None:
+            ckpt_path = Path(checkpoint_path)
+        else:
+            ckpt_path = self.resume_checkpoint
 
         # ============================================================
         # CHECK FOR RESUME CHECKPOINT
         # ============================================================
 
-        resume = self.resume_checkpoint.exists()
+        resume = ckpt_path.exists()
 
         if resume:
 
             logger.info(
                 f"Loading existing checkpoint: "
-                f"{self.resume_checkpoint}"
+                f"{ckpt_path}"
             )
 
             model = YOLO(
-                str(self.resume_checkpoint)
+                str(ckpt_path)
             )
 
             logger.info(
@@ -69,7 +76,7 @@ class ModelTrainer:
             )
 
         # ============================================================
-        # TRAINING
+        # TRAINING CONFIGURATION
         # ============================================================
 
         training_kwargs = dict(
@@ -137,7 +144,7 @@ class ModelTrainer:
         if resume:
 
             training_kwargs["resume"] = str(
-                self.resume_checkpoint
+                ckpt_path
             )
 
         # ============================================================
