@@ -10,30 +10,32 @@ class ModelTrainer:
 
     def __init__(
         self,
-        config: ModelTrainerConfig
+        config: ModelTrainerConfig,
     ):
         self.config = config
 
     def train(
         self,
-        checkpoint_path=None
+        checkpoint_path=None,
     ):
 
-        # ========================================================
+        # ==========================================================
         # Resume training from an existing checkpoint.
-        # ========================================================
+        # ==========================================================
 
         if checkpoint_path:
 
             checkpoint_path = str(
-                Path(checkpoint_path).resolve()
+                Path(
+                    checkpoint_path
+                ).resolve()
             )
 
             logger.info(
-                f"Loading checkpoint: {checkpoint_path}"
+                f"Loading existing checkpoint: {checkpoint_path}"
             )
 
-            # Load the previous YOLO checkpoint.
+            # Load the previous YOLO training checkpoint.
             model = YOLO(
                 checkpoint_path
             )
@@ -46,7 +48,7 @@ class ModelTrainer:
                 "Starting YOLO training in RESUME mode..."
             )
 
-            # Resume the previous training run.
+            # Resume the exact previous Ultralytics training session.
             model.train(
                 resume=True
             )
@@ -57,9 +59,9 @@ class ModelTrainer:
 
             return
 
-        # ========================================================
-        # Start a new training run from the configured model.
-        # ========================================================
+        # ==========================================================
+        # Start a new training run from the configured base model.
+        # ==========================================================
 
         logger.info(
             f"Loading model: {self.config.weight_name}"
@@ -142,7 +144,7 @@ class ModelTrainer:
 
             name=self.config.name,
 
-            exist_ok=True
+            exist_ok=True,
         )
 
         logger.info(

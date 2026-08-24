@@ -25,10 +25,10 @@ class ModelTrainerTrainingPipeline:
         # Create the Hugging Face synchronization manager.
         hf_syncer = HuggingFaceSyncer(
             save_dir="artifacts/model_trainer",
-            interval=180
+            interval=180,
         )
 
-        # Check Hugging Face for an existing training checkpoint.
+        # Check Hugging Face for the previous training checkpoint.
         checkpoint_path = (
             hf_syncer.restore_last_checkpoint()
         )
@@ -43,39 +43,12 @@ class ModelTrainerTrainingPipeline:
                 config=model_trainer_config
             )
 
-            # Start training using the existing checkpoint if available.
+            # Start training with or without checkpoint restoration.
             model_trainer.train(
                 checkpoint_path=checkpoint_path
             )
 
         finally:
 
-            # Stop the background synchronization and perform final sync.
+            # Stop synchronization and perform the final upload.
             hf_syncer.stop()
-
-            # Close the Hugging Face log file handler.
-            hf_syncer.close()
-
-
-if __name__ == "__main__":
-
-    try:
-
-        logger.info(
-            f">>>>>> stage {STAGE_NAME} started <<<<<<"
-        )
-
-        obj = ModelTrainerTrainingPipeline()
-
-        obj.main()
-
-        logger.info(
-            f">>>>>> stage {STAGE_NAME} completed "
-            f"<<<<<<\n\nx==========x"
-        )
-
-    except Exception as e:
-
-        logger.exception(e)
-
-        raise e

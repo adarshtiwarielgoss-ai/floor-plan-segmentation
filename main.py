@@ -18,7 +18,7 @@ from floor_segmentation.utils.auto_zip_and_download import (
 
 
 # ==============================================================
-# Stage 1: Data Ingestion
+# Data Ingestion Stage
 # ==============================================================
 
 STAGE_NAME = "Data Ingestion stage"
@@ -46,7 +46,7 @@ except Exception as e:
 
 
 # ==============================================================
-# Stage 2: Data Validation
+# Data Validation Stage
 # ==============================================================
 
 STAGE_NAME = "Data Validation stage"
@@ -74,7 +74,7 @@ except Exception as e:
 
 
 # ==============================================================
-# Stage 3: Model Trainer
+# Model Trainer Stage
 # ==============================================================
 
 STAGE_NAME = "Model Trainer stage"
@@ -85,17 +85,16 @@ try:
         f">>>>>> stage {STAGE_NAME} started <<<<<<"
     )
 
-    # The model trainer pipeline handles Hugging Face connection,
-    # checkpoint restoration, background synchronization,
-    # training, and final synchronization.
+    # The model trainer pipeline handles Hugging Face,
+    # checkpoint restoration, synchronization, and training.
     obj = ModelTrainerTrainingPipeline()
 
     obj.main()
 
-    # Create an archive of the final training artifacts.
+    # Create the final training artifact archive.
     auto_zip_and_download(
         folder_path="artifacts/model_trainer",
-        zip_name="model_trainer_results"
+        zip_name="model_trainer_results",
     )
 
     logger.info(

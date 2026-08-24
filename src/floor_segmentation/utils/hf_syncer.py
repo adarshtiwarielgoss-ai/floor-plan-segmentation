@@ -1,14 +1,13 @@
 import os
+import logging
+import threading
+from pathlib import Path
 
 # Disable Hugging Face progress bars before importing huggingface_hub.
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 
-import threading
-import logging
-from pathlib import Path
-
 from dotenv import load_dotenv
-from huggingface_hub import login, HfApi, hf_hub_download
+from huggingface_hub import HfApi, hf_hub_download, login
 
 from floor_segmentation import logger
 
@@ -21,14 +20,14 @@ class HuggingFaceSyncer(threading.Thread):
     def __init__(
         self,
         save_dir="artifacts/model_trainer",
-        interval=180
+        interval=180,
     ):
         super().__init__(daemon=True)
 
         # Store the training artifact directory as an absolute path.
-        self.save_dir = os.path.abspath(save_dir)
+        self.save_dir = Path(save_dir).resolve()
 
-        # Define the background synchronization interval in seconds.
+        # Define the synchronization interval in seconds.
         self.interval = interval
 
         # Create an event used to stop the background thread.
@@ -38,28 +37,27 @@ class HuggingFaceSyncer(threading.Thread):
         self.hf_token = os.getenv("HF_TOKEN")
         self.hf_repo = os.getenv("HF_REPO_ID")
 
-        # Create a dedicated log directory inside the training artifacts.
-        self.log_dir = Path(self.save_dir) / "logs"
-
+        # Create a directory for Hugging Face internal logs.
+        self.log_dir = self.save_dir / "logs"
         self.log_dir.mkdir(
             parents=True,
-            exist_ok=True
+            exist_ok=True,
         )
 
-        # Define the Hugging Face internal log file.
+        # Define the Hugging Face log file.
         self.hf_log_file = self.log_dir / "huggingface.log"
 
-        # Create a file handler for Hugging Face internal logs.
+        # Configure a dedicated file handler for Hugging Face logs.
         self.hf_file_handler = logging.FileHandler(
             self.hf_log_file,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         self.hf_file_handler.setLevel(
             logging.DEBUG
         )
 
-        # Define the format used inside the Hugging Face log file.
+        # Define the format for Hugging Face log entries.
         self.hf_file_handler.setFormatter(
             logging.Formatter(
                 "%(asctime)s | "
@@ -69,61 +67,20 @@ class HuggingFaceSyncer(threading.Thread):
             )
         )
 
-        # Configure the Hugging Face Hub logger.
-        self.hf_logger = logging.getLogger(
-            "huggingface_hub"
-        )
+        # Configure Hugging Face Hub logging.
+        self._configure_huggingface_logging()
 
-        self.hf_logger.handlers.clear()
-
-        self.hf_logger.addHandler(
-            self.hf_file_handler
-        )
-
-        self.hf_logger.setLevel(
-            logging.DEBUG
-        )
-
-        # Prevent Hugging Face logs from reaching the terminal.
-        self.hf_logger.propagate = False
-
-        # Configure the HTTPX logger used by Hugging Face requests.
-        self.httpx_logger = logging.getLogger(
+        # Configure HTTPX logging used by Hugging Face.
+        self._configure_logger(
             "httpx"
         )
 
-        self.httpx_logger.handlers.clear()
-
-        self.httpx_logger.addHandler(
-            self.hf_file_handler
-        )
-
-        self.httpx_logger.setLevel(
-            logging.DEBUG
-        )
-
-        # Prevent HTTPX logs from reaching the terminal.
-        self.httpx_logger.propagate = False
-
-        # Configure the HTTPCore logger used by HTTPX.
-        self.httpcore_logger = logging.getLogger(
+        # Configure HTTPCore logging used by HTTPX.
+        self._configure_logger(
             "httpcore"
         )
 
-        self.httpcore_logger.handlers.clear()
-
-        self.httpcore_logger.addHandler(
-            self.hf_file_handler
-        )
-
-        self.httpcore_logger.setLevel(
-            logging.DEBUG
-        )
-
-        # Prevent HTTPCore logs from reaching the terminal.
-        self.httpcore_logger.propagate = False
-
-        # Disable Hugging Face synchronization if credentials are missing.
+        # Disable Hugging Face synchronization when credentials are missing.
         if not self.hf_token or not self.hf_repo:
 
             self.api = None
@@ -140,7 +97,7 @@ class HuggingFaceSyncer(threading.Thread):
 
             login(
                 token=self.hf_token,
-                add_to_git_credential=False
+                add_to_git_credential=False,
             )
 
             self.api = HfApi(
@@ -164,9 +121,58 @@ class HuggingFaceSyncer(threading.Thread):
 
             raise
 
+    def _configure_huggingface_logging(self):
+
+        # Configure the main Hugging Face logger.
+        hf_logger = logging.getLogger(
+            "huggingface_hub"
+        )
+
+        # Remove existing handlers to prevent duplicate terminal output.
+        hf_logger.handlers.clear()
+
+        # Send Hugging Face logs only to the log file.
+        hf_logger.addHandler(
+            self.hf_file_handler
+        )
+
+        # Capture detailed Hugging Face logs.
+        hf_logger.setLevel(
+            logging.DEBUG
+        )
+
+        # Prevent Hugging Face logs from reaching the root logger.
+        hf_logger.propagate = False
+
+    def _configure_logger(
+        self,
+        logger_name,
+    ):
+
+        # Configure a third-party logger to write only to the HF log file.
+        target_logger = logging.getLogger(
+            logger_name
+        )
+
+        # Remove existing handlers to prevent terminal output.
+        target_logger.handlers.clear()
+
+        # Send the logger output to the HF log file.
+        target_logger.addHandler(
+            self.hf_file_handler
+        )
+
+        # Capture detailed logs.
+        target_logger.setLevel(
+            logging.DEBUG
+        )
+
+        # Prevent the logs from reaching the root logger.
+        target_logger.propagate = False
+
     def restore_last_checkpoint(self):
 
-        # Return immediately if Hugging Face is not configured.
+        # Return immediately if Hugging Face is unavailable.
         if not self.api:
 
             logger.info(
@@ -175,17 +181,9 @@ class HuggingFaceSyncer(threading.Thread):
 
             return None
 
-        # Define the checkpoint path inside the Hugging Face repository.
-        hf_checkpoint_path = "weights/last.pt"
-
-        # Define the local weights directory.
-        local_weights_dir = (
-            Path(self.save_dir) / "weights"
-        )
-
-        local_weights_dir.mkdir(
-            parents=True,
-            exist_ok=True
+        # This is the exact checkpoint path shown in the Hugging Face repository.
+        hf_checkpoint_path = (
+            "train/weights/last.pt"
         )
 
         logger.info(
@@ -194,18 +192,23 @@ class HuggingFaceSyncer(threading.Thread):
 
         try:
 
-            # Download the latest checkpoint from Hugging Face.
+            # Download the checkpoint into the local training artifact directory.
             downloaded_path = hf_hub_download(
                 repo_id=self.hf_repo,
                 filename=hf_checkpoint_path,
                 repo_type="model",
                 token=self.hf_token,
-                local_dir=self.save_dir,
-                local_dir_use_symlinks=False,
+                local_dir=str(
+                    self.save_dir
+                ),
             )
 
-            # Verify that the checkpoint was downloaded successfully.
-            if os.path.exists(downloaded_path):
+            downloaded_path = Path(
+                downloaded_path
+            ).resolve()
+
+            # Verify that the downloaded checkpoint exists.
+            if downloaded_path.exists():
 
                 logger.info(
                     "[HF Restore] Existing last.pt found."
@@ -224,7 +227,7 @@ class HuggingFaceSyncer(threading.Thread):
                 )
 
             logger.info(
-                "[HF Restore] Checkpoint was not found locally."
+                "[HF Restore] Checkpoint could not be found locally."
             )
 
             logger.info(
@@ -242,6 +245,7 @@ class HuggingFaceSyncer(threading.Thread):
                 "404" in error_text
                 or "not found" in error_text
                 or "entry not found" in error_text
+                or "does not exist" in error_text
             ):
 
                 logger.info(
@@ -256,8 +260,7 @@ class HuggingFaceSyncer(threading.Thread):
 
             # Raise unexpected Hugging Face errors.
             logger.error(
-                "[HF Restore] Failed to check or download "
-                "the existing checkpoint."
+                "[HF Restore] Failed to restore checkpoint."
             )
 
             logger.exception(e)
@@ -266,15 +269,11 @@ class HuggingFaceSyncer(threading.Thread):
 
     def run(self):
 
-        # Stop the thread immediately if Hugging Face is unavailable.
+        # Stop immediately when Hugging Face is unavailable.
         if not self.api:
             return
 
-        logger.info(
-            "[HF Watcher] Background synchronization started."
-        )
-
-        # Continue synchronization until the stop event is triggered.
+        # Keep synchronization running in the background.
         while not self.stop_event.is_set():
 
             try:
@@ -283,46 +282,49 @@ class HuggingFaceSyncer(threading.Thread):
 
             except Exception as e:
 
+                # Keep synchronization errors inside the application log.
                 logger.error(
                     "[HF Watcher] Synchronization failed."
                 )
 
                 logger.exception(e)
 
-            # Wait for the configured interval before the next sync.
+            # Wait before starting the next synchronization.
             self.stop_event.wait(
                 self.interval
             )
 
     def _sync_files(self):
 
-        # Do nothing if Hugging Face is not configured.
+        # Return if Hugging Face is unavailable.
         if not self.api:
             return
 
-        # Do nothing if the training artifact directory does not exist.
-        if not os.path.exists(self.save_dir):
+        # Return if the training directory does not exist.
+        if not self.save_dir.exists():
             return
 
         try:
 
-            # Upload all training artifacts and logs to Hugging Face.
+            # Upload all training artifacts, checkpoints, and logs.
             self.api.upload_folder(
-                folder_path=self.save_dir,
+                folder_path=str(
+                    self.save_dir
+                ),
                 repo_id=self.hf_repo,
                 repo_type="model",
                 commit_message="Auto-sync training artifacts",
             )
 
-            # Show only a clean synchronization message.
+            # Keep the terminal output short and clean.
             logger.info(
-                "[HF Watcher] Training artifacts synced successfully."
+                "[HF Watcher] Training artifacts synchronized."
             )
 
         except Exception as e:
 
             logger.error(
-                "[HF Watcher] Training artifacts sync failed."
+                "[HF Watcher] Training artifacts synchronization failed."
             )
 
             logger.exception(e)
@@ -331,54 +333,38 @@ class HuggingFaceSyncer(threading.Thread):
 
     def stop(self):
 
-        logger.info(
-            "[HF Watcher] Stopping background synchronization."
-        )
-
         # Signal the background thread to stop.
         self.stop_event.set()
 
-        # Skip the final synchronization if Hugging Face is unavailable.
-        if not self.api:
-            return
+        # Perform one final synchronization.
+        if self.api:
 
-        try:
+            try:
 
-            # Perform one final synchronization before stopping.
-            self._sync_files()
+                self._sync_files()
 
-            logger.info(
-                "[HF Watcher] Final synchronization completed."
-            )
+                logger.info(
+                    "[HF Watcher] Final synchronization completed."
+                )
 
-        except Exception as e:
+            except Exception as e:
 
-            logger.error(
-                "[HF Watcher] Final synchronization failed."
-            )
+                logger.error(
+                    "[HF Watcher] Final synchronization failed."
+                )
 
-            logger.exception(e)
+                logger.exception(e)
+
+        # Close the dedicated log handler.
+        self.close()
 
     def close(self):
 
-        # Close the dedicated Hugging Face log file handler.
+        # Flush and close the Hugging Face log file.
         try:
 
-            if hasattr(
-                self,
-                "hf_file_handler"
-            ):
+            self.hf_file_handler.flush()
+            self.hf_file_handler.close()
 
-                self.hf_file_handler.flush()
-                self.hf_file_handler.close()
-
-        except Exception:
-            pass
-
-    def __del__(self):
-
-        # Attempt to release the log handler during object cleanup.
-        try:
-            self.close()
         except Exception:
             pass
