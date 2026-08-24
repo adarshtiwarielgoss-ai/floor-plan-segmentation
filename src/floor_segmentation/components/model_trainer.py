@@ -10,63 +10,84 @@ class ModelTrainer:
 
     def __init__(
         self,
-        config: ModelTrainerConfig,
-        resume_checkpoint=None
+        config: ModelTrainerConfig
     ):
         self.config = config
-        self.resume_checkpoint = resume_checkpoint
 
-    def train(self):
+    def train(
+        self,
+        checkpoint_path=None
+    ):
 
-        # ==========================================================
-        # RESUME / SCRATCH MODEL SELECTION
-        # ==========================================================
+        # ========================================================
+        # Resume training from an existing checkpoint.
+        # ========================================================
 
-        if self.resume_checkpoint:
+        if checkpoint_path:
 
-            logger.info(
-                "Existing HuggingFace checkpoint found."
+            checkpoint_path = str(
+                Path(checkpoint_path).resolve()
             )
 
             logger.info(
-                f"Loading resume checkpoint: "
-                f"{self.resume_checkpoint}"
+                f"Loading checkpoint: {checkpoint_path}"
             )
 
-            model = YOLO(self.resume_checkpoint)
-
-            resume_training = True
-
-            logger.info(
-                "Training will RESUME from the existing checkpoint."
-            )
-
-        else:
-
-            logger.info(
-                f"Loading model: {self.config.weight_name}"
-            )
-
-            model = YOLO(self.config.weight_name)
-
-            resume_training = False
-
-            logger.info(
-                "No existing checkpoint found."
+            # Load the previous YOLO checkpoint.
+            model = YOLO(
+                checkpoint_path
             )
 
             logger.info(
-                "Training will start from SCRATCH."
+                "Existing checkpoint loaded successfully."
             )
 
-        # ==========================================================
-        # EXISTING TRAINING LOGIC
-        # ==========================================================
+            logger.info(
+                "Starting YOLO training in RESUME mode..."
+            )
 
-        logger.info("Starting YOLO Training...")
+            # Resume the previous training run.
+            model.train(
+                resume=True
+            )
 
+            logger.info(
+                "Resumed Model Training Completed Successfully."
+            )
+
+            return
+
+        # ========================================================
+        # Start a new training run from the configured model.
+        # ========================================================
+
+        logger.info(
+            f"Loading model: {self.config.weight_name}"
+        )
+
+        # Load the configured base model.
+        model = YOLO(
+            self.config.weight_name
+        )
+
+        logger.info(
+            "No existing checkpoint found."
+        )
+
+        logger.info(
+            "Training will start from SCRATCH."
+        )
+
+        logger.info(
+            "Starting YOLO Training..."
+        )
+
+        # Start a new YOLO training run.
         model.train(
-            data=str(self.config.data_yaml),
+
+            data=str(
+                self.config.data_yaml
+            ),
 
             epochs=self.config.epochs,
             patience=self.config.patience,
@@ -113,14 +134,15 @@ class ModelTrainer:
             deterministic=self.config.deterministic,
             verbose=self.config.verbose,
 
-            project=str(Path(self.config.root_dir).resolve()),
-            name=self.config.name,
-            exist_ok=True,
+            project=str(
+                Path(
+                    self.config.root_dir
+                ).resolve()
+            ),
 
-            # ======================================================
-            # ONLY NEW TRAINING PARAMETER
-            # ======================================================
-            resume=resume_training
+            name=self.config.name,
+
+            exist_ok=True
         )
 
         logger.info(
