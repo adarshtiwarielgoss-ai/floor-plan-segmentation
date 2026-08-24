@@ -2,7 +2,7 @@
 # Model Training Parameters
 # ==========================
 
-EPOCHS: 1
+EPOCHS: 5
 PATIENCE: 40
 
 # Image
