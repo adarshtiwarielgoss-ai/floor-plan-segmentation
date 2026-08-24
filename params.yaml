@@ -9,7 +9,10 @@ PATIENCE: 40
 IMGSZ: 640
 
 # Batch
-BATCH_SIZE: 16
+# This is the global batch size when DEVICE contains multiple GPUs. With two
+# 16 GB T4s, each process receives two images, which avoids CUDA OOM for the
+# yolo26x segmentation model at 640px.
+BATCH_SIZE: 4
 
 # Optimizer
 OPTIMIZER: AdamW
@@ -51,7 +54,8 @@ PLOTS: True
 # Hardware
 DEVICE: 0,1
 WORKERS: 2
-AMP: False # change to True 
+# Mixed precision substantially reduces activation memory during training.
+AMP: True
 
 # Misc
 SEED: 42
