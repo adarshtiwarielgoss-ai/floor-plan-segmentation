@@ -8,14 +8,60 @@ from floor_segmentation.entity.config_entity import ModelTrainerConfig
 
 class ModelTrainer:
 
-    def __init__(self, config: ModelTrainerConfig):
+    def __init__(
+        self,
+        config: ModelTrainerConfig,
+        resume_checkpoint=None
+    ):
         self.config = config
+        self.resume_checkpoint = resume_checkpoint
 
     def train(self):
 
-        logger.info(f"Loading model: {self.config.weight_name}")
+        # ==========================================================
+        # RESUME / SCRATCH MODEL SELECTION
+        # ==========================================================
 
-        model = YOLO(self.config.weight_name)
+        if self.resume_checkpoint:
+
+            logger.info(
+                "Existing HuggingFace checkpoint found."
+            )
+
+            logger.info(
+                f"Loading resume checkpoint: "
+                f"{self.resume_checkpoint}"
+            )
+
+            model = YOLO(self.resume_checkpoint)
+
+            resume_training = True
+
+            logger.info(
+                "Training will RESUME from the existing checkpoint."
+            )
+
+        else:
+
+            logger.info(
+                f"Loading model: {self.config.weight_name}"
+            )
+
+            model = YOLO(self.config.weight_name)
+
+            resume_training = False
+
+            logger.info(
+                "No existing checkpoint found."
+            )
+
+            logger.info(
+                "Training will start from SCRATCH."
+            )
+
+        # ==========================================================
+        # EXISTING TRAINING LOGIC
+        # ==========================================================
 
         logger.info("Starting YOLO Training...")
 
@@ -69,7 +115,14 @@ class ModelTrainer:
 
             project=str(Path(self.config.root_dir).resolve()),
             name=self.config.name,
-            exist_ok=True
+            exist_ok=True,
+
+            # ======================================================
+            # ONLY NEW TRAINING PARAMETER
+            # ======================================================
+            resume=resume_training
         )
 
-        logger.info("Model Training Completed Successfully.")
+        logger.info(
+            "Model Training Completed Successfully."
+        )

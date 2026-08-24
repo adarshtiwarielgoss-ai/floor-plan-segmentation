@@ -28,14 +28,14 @@ WARMUP_MOMENTUM: 0.8
 
 # Augmentation
 MOSAIC: 0.5
-SCALE: 0.5
+SCALE: 0.8
 TRANSLATE: 0.1
 FLIPLR: 0.5
 FLIPUD: 0.0
 
-HSV_H: 0.015
-HSV_S: 0.7
-HSV_V: 0.4
+HSV_H: 0.0
+HSV_S: 0.0
+HSV_V: 0.0
 
 MIXUP: 0.0
 COPY_PASTE: 0.0
@@ -49,7 +49,7 @@ VAL: True
 PLOTS: True
 
 # Hardware
-DEVICE: 0,
+DEVICE: 0
 WORKERS: 2
 AMP: False # change to True 
 
