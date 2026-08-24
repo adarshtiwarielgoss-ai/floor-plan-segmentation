@@ -30,7 +30,7 @@ class ModelTrainerTrainingPipeline:
 
         # Check Hugging Face for the previous training checkpoint.
         checkpoint_path = (
-            hf_syncer.restore_last_checkpoint()
+            hf_syncer.restore_checkpoint()
         )
 
         # Start background Hugging Face synchronization.
