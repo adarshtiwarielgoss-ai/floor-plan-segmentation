@@ -80,7 +80,7 @@ class ConfigurationManager:
          data_yaml=Path(
             os.path.join(
                 self.config.data_ingestion.unzip_dir,
-                "mini_wall_dataset",
+                "room_dataset",
                 "data.yaml"
             )
         ),
