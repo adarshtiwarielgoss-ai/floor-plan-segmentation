@@ -14,7 +14,6 @@ from floor_segmentation import logger
 load_dotenv()
 
 # Disable Hugging Face progress bars globally.
-# This prevents upload/download progress from interfering with YOLO terminal output.
 disable_progress_bars()
 
 
@@ -51,7 +50,10 @@ class HuggingFaceSyncer(threading.Thread):
 
     def _setup_hf_logger(self):
 
-        self.save_dir.mkdir(parents=True, exist_ok=True)
+        self.save_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
         self.file_logger = logging.getLogger(
             "floor_segmentation.huggingface"
@@ -77,18 +79,33 @@ class HuggingFaceSyncer(threading.Thread):
 
             file_handler.setFormatter(formatter)
 
-            self.file_logger.addHandler(file_handler)
+            self.file_logger.addHandler(
+                file_handler
+            )
 
-    def _hf_log(self, message, level="info"):
+    def _hf_log(
+        self,
+        message,
+        level="info",
+    ):
 
         if level == "error":
-            self.file_logger.error(message)
+
+            self.file_logger.error(
+                message
+            )
 
         elif level == "warning":
-            self.file_logger.warning(message)
+
+            self.file_logger.warning(
+                message
+            )
 
         else:
-            self.file_logger.info(message)
+
+            self.file_logger.info(
+                message
+            )
 
     # ============================================================
     # CONNECT TO HUGGING FACE
@@ -107,8 +124,13 @@ class HuggingFaceSyncer(threading.Thread):
         try:
 
             # Suppress Hugging Face login output.
-            with open(os.devnull, "w") as devnull:
+            with open(
+                os.devnull,
+                "w"
+            ) as devnull:
+
                 with redirect_stdout(devnull):
+
                     with redirect_stderr(devnull):
 
                         login(
@@ -127,8 +149,7 @@ class HuggingFaceSyncer(threading.Thread):
                 f"{self.hf_repo}"
             )
 
-            # This is the ONLY HF message intentionally shown
-            # in the terminal.
+            # ONLY HF message shown in terminal.
             logger.info(
                 "[HF] Hugging Face connected successfully."
             )
@@ -171,14 +192,20 @@ class HuggingFaceSyncer(threading.Thread):
             return None
 
         self._hf_log(
-            "Checking Hugging Face for existing train/weights/last.pt..."
+            "Checking Hugging Face for existing "
+            "train/weights/last.pt..."
         )
 
         try:
 
             # Suppress all HF download output.
-            with open(os.devnull, "w") as devnull:
+            with open(
+                os.devnull,
+                "w"
+            ) as devnull:
+
                 with redirect_stdout(devnull):
+
                     with redirect_stderr(devnull):
 
                         downloaded_file = hf_hub_download(
@@ -193,18 +220,17 @@ class HuggingFaceSyncer(threading.Thread):
                 exist_ok=True,
             )
 
-            # Copy downloaded checkpoint to the exact location
-            # expected by the YOLO training pipeline.
             import shutil
 
+            # Copy checkpoint to exact YOLO location.
             shutil.copy2(
                 downloaded_file,
                 local_checkpoint,
             )
 
             self._hf_log(
-                f"Existing checkpoint found and downloaded successfully: "
-                f"{local_checkpoint}"
+                "Existing checkpoint found and "
+                f"downloaded successfully: {local_checkpoint}"
             )
 
             return local_checkpoint
@@ -213,7 +239,7 @@ class HuggingFaceSyncer(threading.Thread):
 
             error_text = str(e)
 
-            # 404 means there is no checkpoint yet.
+            # No checkpoint exists.
             if (
                 "404" in error_text
                 or "Entry Not Found" in error_text
@@ -221,7 +247,8 @@ class HuggingFaceSyncer(threading.Thread):
             ):
 
                 self._hf_log(
-                    "No existing train/weights/last.pt found on Hugging Face."
+                    "No existing train/weights/last.pt "
+                    "found on Hugging Face."
                 )
 
                 return None
@@ -243,13 +270,27 @@ class HuggingFaceSyncer(threading.Thread):
             return
 
         self._hf_log(
-            f"Background Hugging Face synchronization started. "
-            f"Interval={self.interval} seconds."
+            "Background Hugging Face synchronization started. "
+            f"First sync will happen after {self.interval} seconds."
         )
 
         while not self.stop_event.is_set():
 
+            # ====================================================
+            # WAIT FIRST
+            # ====================================================
+            # No upload immediately after start.
+            self.stop_event.wait(
+                self.interval
+            )
+
+            # If stop() was called during the wait,
+            # do not perform another background upload.
+            if self.stop_event.is_set():
+                break
+
             try:
+
                 self._sync_files()
 
             except Exception as e:
@@ -258,8 +299,6 @@ class HuggingFaceSyncer(threading.Thread):
                     f"Background synchronization failed: {repr(e)}",
                     level="error",
                 )
-
-            self.stop_event.wait(self.interval)
 
     # ============================================================
     # SYNC TRAINING FILES
@@ -273,7 +312,8 @@ class HuggingFaceSyncer(threading.Thread):
         if not self.save_dir.exists():
 
             self._hf_log(
-                f"Save directory does not exist: {self.save_dir}",
+                f"Save directory does not exist: "
+                f"{self.save_dir}",
                 level="warning",
             )
 
@@ -282,9 +322,6 @@ class HuggingFaceSyncer(threading.Thread):
         try:
 
             # Upload only useful training artifacts.
-            #
-            # This avoids repeatedly uploading unnecessary files
-            # and keeps the training terminal clean.
             allowed_patterns = [
                 "train/weights/last.pt",
                 "train/weights/best.pt",
@@ -297,18 +334,27 @@ class HuggingFaceSyncer(threading.Thread):
                 "hf_sync.log",
             ]
 
-            # Suppress all Hugging Face output.
-            with open(os.devnull, "w") as devnull:
+            # Suppress HF stdout/stderr output.
+            with open(
+                os.devnull,
+                "w"
+            ) as devnull:
+
                 with redirect_stdout(devnull):
+
                     with redirect_stderr(devnull):
 
                         self.api.upload_folder(
-                            folder_path=str(self.save_dir),
+                            folder_path=str(
+                                self.save_dir
+                            ),
                             path_in_repo="",
                             repo_id=self.hf_repo,
                             repo_type="model",
                             allow_patterns=allowed_patterns,
-                            commit_message="Auto-sync training artifacts",
+                            commit_message=(
+                                "Auto-sync training artifacts"
+                            ),
                             token=self.hf_token,
                         )
 
@@ -335,14 +381,17 @@ class HuggingFaceSyncer(threading.Thread):
 
         self.stop_event.set()
 
-        # Wait for the background thread to finish.
+        # Wait for background thread to finish.
         if self.is_alive():
 
             self.join(
                 timeout=30
             )
 
-        # Perform one final synchronization.
+        # ========================================================
+        # FINAL SYNC
+        # ========================================================
+
         if self.connected:
 
             try:

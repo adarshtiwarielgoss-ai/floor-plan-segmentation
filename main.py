@@ -90,16 +90,16 @@ try:
     SAVE_DIR = "artifacts/model_trainer"
 
     # --------------------------------------------------------
-    # 1. Create Hugging Face synchronizer
+    # 1. Create ONE Hugging Face synchronizer
     # --------------------------------------------------------
 
     hf_syncer = HuggingFaceSyncer(
         save_dir=SAVE_DIR,
-        interval=180,
+        interval=3600,       # 1 hour
     )
 
     # --------------------------------------------------------
-    # 2. Restore checkpoint BEFORE training starts
+    # 2. Restore checkpoint BEFORE training
     # --------------------------------------------------------
 
     checkpoint = hf_syncer.restore_checkpoint()
@@ -112,6 +112,10 @@ try:
 
         logger.info(
             "Existing checkpoint found on Hugging Face."
+        )
+
+        logger.info(
+            f"Checkpoint: {checkpoint}"
         )
 
         logger.info(
@@ -141,7 +145,7 @@ try:
         )
 
     # --------------------------------------------------------
-    # 3. Start background Hugging Face synchronization
+    # 3. Start ONE background synchronization
     # --------------------------------------------------------
 
     hf_syncer.start()
@@ -151,10 +155,14 @@ try:
     # --------------------------------------------------------
 
     obj = ModelTrainerTrainingPipeline()
-    obj.main()
+
+    obj.main(
+        checkpoint_path=checkpoint
+    )
 
     # --------------------------------------------------------
-    # 5. Stop HF synchronization and perform final sync
+    # 5. Stop HF synchronization
+    #    Final sync will happen here
     # --------------------------------------------------------
 
     hf_syncer.stop()
@@ -180,12 +188,13 @@ except Exception as e:
     logger.exception(e)
 
     # --------------------------------------------------------
-    # Make sure HF sync is stopped even if training fails
+    # Make sure HF sync is stopped if training fails
     # --------------------------------------------------------
 
     if hf_syncer is not None:
 
         try:
+
             hf_syncer.stop()
 
         except Exception as sync_error:
