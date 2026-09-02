@@ -23,7 +23,7 @@ class HuggingFaceSyncer(threading.Thread):
     def __init__(
         self,
         save_dir="artifacts/model_trainer",
-        interval=180,
+        interval=3600,
     ):
         super().__init__(daemon=True)
 
