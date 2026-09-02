@@ -3,7 +3,7 @@ artifacts_root: artifacts
 
 data_ingestion:
   root_dir: artifacts/data_ingestion
-  source_URL: https://drive.google.com/file/d/1-C-7t5L-byFwZhTlwPzhDZ-bfR9fic-O/view?usp=sharing
+  source_URL: https://drive.google.com/file/d/1zw49laXtgnD7ZMkZdbC176X_qJPAENHN/view?usp=sharing
   local_data_file: artifacts/data_ingestion/data.zip
   unzip_dir: artifacts/data_ingestion
 
@@ -11,7 +11,7 @@ data_ingestion:
 
 data_validation:
   root_dir: artifacts/data_validation
-  unzip_data_dir: artifacts/data_ingestion/mini_wall_dataset
+  unzip_data_dir: artifacts/data_ingestion/room_dataset
   STATUS_FILE: artifacts/data_validation/status.txt  
 
 
